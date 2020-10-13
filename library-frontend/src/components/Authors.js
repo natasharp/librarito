@@ -53,6 +53,7 @@ const Authors = (props) => {
           ))}
         </tbody>
       </table>
+      <div style={props.showWhenLogedIn}>
       <h3>Set birthyear</h3>
       <Select
         value={selectedAuthor}
@@ -69,6 +70,7 @@ const Authors = (props) => {
         </div>
         <button type='submit'>update author</button>
       </form>
+      </div>
     </div>
   )
 }

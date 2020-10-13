@@ -1,4 +1,9 @@
-const { ApolloServer, gql, UserInputError, AuthenticationError } = require('apollo-server')
+const {
+  ApolloServer,
+  gql,
+  UserInputError,
+  AuthenticationError,
+} = require('apollo-server')
 const mongoose = require('mongoose')
 const Book = require('./models/book')
 const Author = require('./models/author')
@@ -79,23 +84,23 @@ const resolvers = {
     me: (root, args, context) => {
       return context.currentUser
     },
-    allBooks: (root, args) => {
+    allBooks: async (root, args) => {
       if (args.author && args.genre) {
-        return books.filter(
-          (b) =>
-            b.author === args.author && b.genres.find((g) => g === args.genre)
-        )
+        const author = await Author.findOne({name: args.author})
+        return Book.find({author: author, genres: { $in: [args.genre] } }).populate('author')
       }
       if (args.author) {
-        return books.filter((b) => b.author === args.author)
+        const author = await Author.findOne({name: args.author})
+        return Book.find({ author: author }).populate('author')
       }
       if (args.genre) {
-        return books.filter((b) => b.genres.find((g) => g === args.genre))
+        Book.find({ genres: { $in: [args.genre] } }).populate('author')
       }
+      const books = await Book.find({}).populate('author')
       return books
     },
     allAuthors: (root, args) => {
-      return Author.find({})
+      return Author.find({}).populate('author')
     },
   },
   Author: {
@@ -104,15 +109,15 @@ const resolvers = {
     },
   },
   Mutation: {
-    addBook: async (root, args, {currentUser}) => {
+    addBook: async (root, args, { currentUser }) => {
       if (!currentUser) {
-        throw new AuthenticationError("not authenticated")
+        throw new AuthenticationError('not authenticated')
       }
 
-      const author = await Author.findOne({ name: args.author })
+      let author = await Author.findOne({ name: args.author })
       if (!author) {
         const newAuthor = new Author({ name: args.author })
-        const author = await newAuthor.save()
+        author = await newAuthor.save()
       }
       const book = new Book({
         title: args.title,
@@ -120,11 +125,11 @@ const resolvers = {
         author: author,
         genres: args.genres,
       })
-      return book.save()
+      return (await book.save()).populate('author')
     },
-    editAuthor: async (root, args, {currentUser}) => {
+    editAuthor: async (root, args, { currentUser }) => {
       if (!currentUser) {
-        throw new AuthenticationError("not authenticated")
+        throw new AuthenticationError('not authenticated')
       }
 
       const author = await Author.findOne({ name: args.name })
@@ -134,7 +139,10 @@ const resolvers = {
       }
     },
     createUser: (root, args) => {
-      const user = new User({ username: args.username, favoriteGenre: args.favoriteGenre })
+      const user = new User({
+        username: args.username,
+        favoriteGenre: args.favoriteGenre,
+      })
 
       return user.save().catch((error) => {
         throw new UserInputError(error.message, {
