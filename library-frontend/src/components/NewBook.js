@@ -8,8 +8,29 @@ const NewBook = (props) => {
   const [publishedYear, setPublished] = useState('')
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
-  const [ addBook ] = useMutation(ADD_BOOK, {
-    refetchQueries: [{query: ALL_BOOKS}, {query: ALL_AUTHORS}]
+  const [addBook] = useMutation(ADD_BOOK, {
+    update: (store, response) => {
+      try {
+        const booksInStore = store.readQuery({ query: ALL_BOOKS })
+        store.writeQuery({
+          query: ALL_BOOKS,
+          data: {
+            ...booksInStore,
+            allBooks: [...booksInStore.allBooks, response.data.addBook],
+          },
+        })
+        const authorsInStore = store.readQuery({ query: ALL_AUTHORS })
+        store.writeQuery({
+          query: ALL_AUTHORS,
+          data: {
+            ...authorsInStore,
+            allAuthors: [...authorsInStore.allAuthors, response.data.addBook.author],
+          },
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    },
   })
 
   if (!props.show) {
@@ -20,7 +41,7 @@ const NewBook = (props) => {
     event.preventDefault()
 
     const published = parseInt(publishedYear)
-    addBook({  variables: { title, published, author, genres } })
+    addBook({ variables: { title, published, author, genres } })
 
     setTitle('')
     setPublished('')
@@ -64,11 +85,11 @@ const NewBook = (props) => {
             value={genre}
             onChange={({ target }) => setGenre(target.value)}
           />
-          <button onClick={addGenre} type="button">add genre</button>
+          <button onClick={addGenre} type='button'>
+            add genre
+          </button>
         </div>
-        <div>
-          genres: {genres.join(' ')}
-        </div>
+        <div>genres: {genres.join(' ')}</div>
         <button type='submit'>create book</button>
       </form>
     </div>

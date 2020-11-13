@@ -9,15 +9,12 @@ const Book = require('./models/book')
 const Author = require('./models/author')
 const User = require('./models/user')
 const jwt = require('jsonwebtoken')
+require('dotenv').config()
 
-const JWT_SECRET = '123456789sifra'
-const MONGODB_URI =
-  'mongodb+srv://fullstack:vSfffj3pB3Qzfduh@cluster0.ionyk.mongodb.net/library-graphQL?retryWrites=true&w=majority'
-
-console.log('connecting to', MONGODB_URI)
+console.log('connecting to', process.env.MONGODB_URI)
 
 mongoose
-  .connect(MONGODB_URI, {
+  .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
@@ -81,20 +78,24 @@ const resolvers = {
   Query: {
     bookCount: () => Book.collection.countDocuments(),
     authorCount: () => Author.collection.countDocuments(),
-    me: (root, args, context) => {
-      return context.currentUser
+    me: (root, args, { currentUser }) => {
+      console.log(currentUser)
+      return currentUser
     },
     allBooks: async (root, args) => {
       if (args.author && args.genre) {
-        const author = await Author.findOne({name: args.author})
-        return Book.find({author: author, genres: { $in: [args.genre] } }).populate('author')
+        const author = await Author.findOne({ name: args.author })
+        return Book.find({
+          author: author,
+          genres: { $in: [args.genre] },
+        }).populate('author')
       }
       if (args.author) {
-        const author = await Author.findOne({name: args.author})
+        const author = await Author.findOne({ name: args.author })
         return Book.find({ author: author }).populate('author')
       }
       if (args.genre) {
-        Book.find({ genres: { $in: [args.genre] } }).populate('author')
+        return Book.find({ genres: { $in: [args.genre] } }).populate('author')
       }
       const books = await Book.find({}).populate('author')
       return books
@@ -110,6 +111,7 @@ const resolvers = {
   },
   Mutation: {
     addBook: async (root, args, { currentUser }) => {
+      console.log(currentUser)
       if (!currentUser) {
         throw new AuthenticationError('not authenticated')
       }
@@ -125,17 +127,31 @@ const resolvers = {
         author: author,
         genres: args.genres,
       })
-      return (await book.save()).populate('author')
+      try {
+        await (await book.save()).populate('author')
+      } catch (error) {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        })
+      }
+      return book
     },
     editAuthor: async (root, args, { currentUser }) => {
       if (!currentUser) {
         throw new AuthenticationError('not authenticated')
       }
+      console.log('edit', currentUser)
 
       const author = await Author.findOne({ name: args.name })
-      if (author) {
-        author.born = args.setBornTo
-        return author.save()
+      try {
+        if (author) {
+          author.born = args.setBornTo
+          return author.save()
+        }
+      } catch (error) {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        })
       }
     },
     createUser: (root, args) => {
@@ -144,11 +160,14 @@ const resolvers = {
         favoriteGenre: args.favoriteGenre,
       })
 
-      return user.save().catch((error) => {
+      try {
+        user.save()
+      } catch (error) {
         throw new UserInputError(error.message, {
           invalidArgs: args,
         })
-      })
+      }
+      return user
     },
     login: async (root, args) => {
       const user = await User.findOne({ username: args.username })
@@ -162,7 +181,7 @@ const resolvers = {
         id: user._id,
       }
 
-      return { value: jwt.sign(userForToken, JWT_SECRET) }
+      return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
     },
   },
 }
@@ -173,10 +192,8 @@ const server = new ApolloServer({
   context: async ({ req }) => {
     const auth = req ? req.headers.authorization : null
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
-      const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
-      const currentUser = await User.findById(decodedToken.id).populate(
-        'friends'
-      )
+      const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
+      const currentUser = await User.findById(decodedToken.id)
       return { currentUser }
     }
   },
