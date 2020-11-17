@@ -9,7 +9,18 @@ const Book = require('./models/book')
 const Author = require('./models/author')
 const User = require('./models/user')
 const jwt = require('jsonwebtoken')
+const DataLoader = require('dataloader')
+const { PubSub } = require('apollo-server')
 require('dotenv').config()
+const pubsub = new PubSub()
+
+
+const bookCountLoader = new DataLoader(authorIds => {
+  return Book.find({ author: { $in: authorIds } }).then(books => {
+    const authorsBooksCountList = authorIds.map(author => books.filter(book => book.author == author).length)
+    return authorsBooksCountList;
+  });
+});
 
 console.log('connecting to', process.env.MONGODB_URI)
 
@@ -72,6 +83,10 @@ const typeDefs = gql`
     createUser(username: String!, favoriteGenre: String!): User
     login(username: String!, password: String!): Token
   }
+
+  type Subscription {
+    bookAdded: Book!
+  }   
 `
 
 const resolvers = {
@@ -79,7 +94,6 @@ const resolvers = {
     bookCount: () => Book.collection.countDocuments(),
     authorCount: () => Author.collection.countDocuments(),
     me: (root, args, { currentUser }) => {
-      console.log(currentUser)
       return currentUser
     },
     allBooks: async (root, args) => {
@@ -100,18 +114,16 @@ const resolvers = {
       const books = await Book.find({}).populate('author')
       return books
     },
-    allAuthors: (root, args) => {
-      return Author.find({}).populate('author')
+    allAuthors: async (root, args) => {
+      const authors = await Author.find({})
+      return authors
     },
   },
   Author: {
-    bookCount: (root) => {
-      return Book.find({ author: root }).countDocuments()
-    },
+    bookCount: ({ id }, args, { loaders }) => loaders.bookCountLoader.load(id)
   },
   Mutation: {
     addBook: async (root, args, { currentUser }) => {
-      console.log(currentUser)
       if (!currentUser) {
         throw new AuthenticationError('not authenticated')
       }
@@ -134,13 +146,13 @@ const resolvers = {
           invalidArgs: args,
         })
       }
+      pubsub.publish('BOOK_ADDED', { bookAdded: book })
       return book
     },
     editAuthor: async (root, args, { currentUser }) => {
       if (!currentUser) {
         throw new AuthenticationError('not authenticated')
       }
-      console.log('edit', currentUser)
 
       const author = await Author.findOne({ name: args.name })
       try {
@@ -184,12 +196,15 @@ const resolvers = {
       return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
     },
   },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator(['BOOK_ADDED'])
+    },
+  },
 }
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: async ({ req }) => {
+const context = ({ req, res }) => ({
+  currentUser: async () => {
     const auth = req ? req.headers.authorization : null
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
@@ -197,8 +212,17 @@ const server = new ApolloServer({
       return { currentUser }
     }
   },
+  loaders: { bookCountLoader },
+  res
 })
 
-server.listen().then(({ url }) => {
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  context: context
+})
+
+server.listen().then(({ url, subscriptionsUrl }) => {
   console.log(`Server ready at ${url}`)
+  console.log(`Subscriptions ready at ${subscriptionsUrl}`)
 })

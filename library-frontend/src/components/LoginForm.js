@@ -7,7 +7,7 @@ const LoginForm = (props) => {
   const [password, setPassword] = useState('')
 
   const [login, tokenResult] = useMutation(LOGIN)
-  const [getCurrentUser, userResult] = useLazyQuery(CURRENT_USER)
+  const [getCurrentUser, userResult] = useLazyQuery(CURRENT_USER, {fetchPolicy: "no-cache"})
 
   useEffect(() => {
     if (tokenResult.data) {
@@ -15,11 +15,15 @@ const LoginForm = (props) => {
       props.setToken(token)
       localStorage.setItem('library-user-token', token)
       getCurrentUser()
-      if (userResult.data) {
-        props.setUser(userResult.data.me)
-      }
     }
-  }, [tokenResult.data, userResult.data]) // eslint-disable-line
+  }, [tokenResult.data]) // eslint-disable-line
+
+  useEffect(() => {
+    if (userResult.data) {
+      props.setUser(userResult.data.me)
+      
+    }
+  }, [userResult.data])  // eslint-disable-line
 
   const submit = async (event) => {
     event.preventDefault()

@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client'
 import React, { useState } from 'react'
-import { ADD_BOOK, ALL_AUTHORS, ALL_BOOKS } from '../queries'
+import { ADD_BOOK } from '../queries'
 
 const NewBook = (props) => {
   const [title, setTitle] = useState('')
@@ -9,28 +9,9 @@ const NewBook = (props) => {
   const [genre, setGenre] = useState('')
   const [genres, setGenres] = useState([])
   const [addBook] = useMutation(ADD_BOOK, {
-    update: (store, response) => {
-      try {
-        const booksInStore = store.readQuery({ query: ALL_BOOKS })
-        store.writeQuery({
-          query: ALL_BOOKS,
-          data: {
-            ...booksInStore,
-            allBooks: [...booksInStore.allBooks, response.data.addBook],
-          },
-        })
-        const authorsInStore = store.readQuery({ query: ALL_AUTHORS })
-        store.writeQuery({
-          query: ALL_AUTHORS,
-          data: {
-            ...authorsInStore,
-            allAuthors: [...authorsInStore.allAuthors, response.data.addBook.author],
-          },
-        })
-      } catch (error) {
-        console.log(error)
-      }
-    },
+    onError: (error) => {
+      console.log(error.graphQLErrors[0].message)
+    }
   })
 
   if (!props.show) {
@@ -42,6 +23,7 @@ const NewBook = (props) => {
 
     const published = parseInt(publishedYear)
     addBook({ variables: { title, published, author, genres } })
+
 
     setTitle('')
     setPublished('')

@@ -1,4 +1,4 @@
-import { useApolloClient, useLazyQuery } from '@apollo/client'
+import { useApolloClient, useLazyQuery, useSubscription } from '@apollo/client'
 import React, { useState } from 'react'
 import { useEffect } from 'react'
 import Authors from './components/Authors'
@@ -6,19 +6,26 @@ import Books from './components/Books'
 import LoginForm from './components/LoginForm'
 import NewBook from './components/NewBook'
 import RecommendedBooks from './components/RecommendedBooks'
-import { ALL_BOOKS } from './queries'
+import { ALL_AUTHORS, ALL_BOOKS, BOOK_ADDED } from './queries'
 
 const App = () => {
   const [page, setPage] = useState('authors')
   const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
-  const [recommendedBooks, setBooks] = useState([])
+  const [recommendedBooks, setRecommendedBooks] = useState([])
   const [getBooks, result] = useLazyQuery(ALL_BOOKS)
   const client = useApolloClient()
+  useSubscription(BOOK_ADDED, {
+    onSubscriptionData: ({ subscriptionData }) => {
+      const book = subscriptionData.data.bookAdded
+      alert(`New book added: ${book.title}, ${book.author.name}`)
+      updateCacheWith(book)
+    }
+  })
 
   useEffect(() => {
     if (result.data) {
-      setBooks(result.data.allBooks)
+      setRecommendedBooks(result.data.allBooks)
     }
   }, [result])
 
@@ -33,9 +40,29 @@ const App = () => {
   const logout = () => {
     setToken(null)
     setUser(null)
-    localStorage.clear()
     setPage('login')
-    client.clearStore()
+    localStorage.clear()
+    client.resetStore()
+  }
+
+  const updateCacheWith = (addedBook) => {
+    const includedIn = (set, object) =>
+      set.map(p => p.id).includes(object.id)
+
+    const booksInStore = client.readQuery({ query: ALL_BOOKS })
+    const authorsInStore = client.readQuery({ query: ALL_AUTHORS })
+    if (!includedIn(booksInStore.allBooks, addedBook)) {
+      client.writeQuery({
+        query: ALL_BOOKS,
+        data: { allBooks: booksInStore.allBooks.concat(addedBook) }
+      })
+    }
+    if (!includedIn(authorsInStore.allAuthors, addedBook.author)) {
+      client.writeQuery({
+        query: ALL_AUTHORS,
+        data: { allAuthors: authorsInStore.allAuthors.concat(addedBook.author) }
+      })
+    }
   }
 
 
@@ -64,7 +91,7 @@ const App = () => {
 
       <NewBook show={page === 'add'} />
 
-      <RecommendedBooks show={page === 'recommend'} books={recommendedBooks} user={user}/>
+      <RecommendedBooks show={page === 'recommend'} books={recommendedBooks} user={user} />
 
       <LoginForm
         show={page === 'login'}

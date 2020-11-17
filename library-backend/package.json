@@ -9,11 +9,14 @@
   "author": "Natasa",
   "license": "MIT",
   "dependencies": {
+    "@apollo/client": "^3.2.5",
     "apollo-server": "^2.18.2",
+    "dataloader": "^2.0.0",
     "dotenv": "^8.2.0",
     "graphql": "^15.3.0",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.10.8",
-    "mongoose-unique-validator": "^2.0.3"
+    "mongoose-unique-validator": "^2.0.3",
+    "subscriptions-transport-ws": "^0.9.18"
   }
 }
