@@ -7,14 +7,38 @@ import LoginForm from './components/LoginForm'
 import NewBook from './components/NewBook'
 import RecommendedBooks from './components/RecommendedBooks'
 import { ALL_AUTHORS, ALL_BOOKS, BOOK_ADDED } from './queries'
+import {
+  BrowserRouter as Router, Switch, Route, Link
+} from "react-router-dom"
+import { AppBar, Container, makeStyles, Tab, Tabs } from '@material-ui/core'
+
+function a11yProps(index) {
+  return {
+    id: `simple-tab-${index}`,
+    'aria-controls': `simple-tabpanel-${index}`,
+  };
+}
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+    backgroundColor: theme.palette.background.paper,
+  },
+}));
 
 const App = () => {
-  const [page, setPage] = useState('authors')
+  const classes = useStyles();
+  const [value, setValue] = React.useState(0);
   const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
   const [recommendedBooks, setRecommendedBooks] = useState([])
   const [getBooks, result] = useLazyQuery(ALL_BOOKS)
   const client = useApolloClient()
+
+  const handleChange = (event, newValue) => {
+    setValue(newValue);
+  };
+
   useSubscription(BOOK_ADDED, {
     onSubscriptionData: ({ subscriptionData }) => {
       const book = subscriptionData.data.bookAdded
@@ -34,13 +58,11 @@ const App = () => {
 
   const showRecommendations = () => {
     getBooks({ variables: { genre: user.favoriteGenre } })
-    setPage('recommend')
   }
 
   const logout = () => {
     setToken(null)
     setUser(null)
-    setPage('login')
     localStorage.clear()
     client.resetStore()
   }
@@ -65,42 +87,30 @@ const App = () => {
     }
   }
 
-
   return (
-    <div>
-      <div>
-        <button onClick={() => setPage('authors')}>authors</button>
-        <button onClick={() => setPage('books')}>books</button>
-        <button style={hideWhenLogedIn} onClick={() => setPage('login')}>
-          login
-        </button>
-        <button style={showWhenLogedIn} onClick={() => setPage('add')}>
-          add book
-        </button>
-        <button style={showWhenLogedIn} onClick={() => showRecommendations()}>
-          recommend
-        </button>
-        <button style={showWhenLogedIn} onClick={() => logout()}>
-          logout
-        </button>
-      </div>
-
-      <Authors show={page === 'authors'} showWhenLogedIn={showWhenLogedIn} />
-
-      <Books show={page === 'books'} />
-
-      <NewBook show={page === 'add'} />
-
-      <RecommendedBooks show={page === 'recommend'} books={recommendedBooks} user={user} />
-
-      <LoginForm
-        show={page === 'login'}
-        user={user}
-        setToken={setToken}
-        setPage={setPage}
-        setUser={setUser}
-      />
-    </div>
+    <Container>
+      <Router>
+        <div className={classes.root}>
+          <AppBar position="static">
+            <Tabs value={value} onChange={handleChange} aria-label="simple tabs example">
+              <Tab label="AUTHORS" {...a11yProps(0)} component={Link} to={"/authors"} />
+              <Tab label="BOOKS" {...a11yProps(1)} component={Link} to={"/books"} />
+              <Tab label="LOGIN" {...a11yProps(2)} component={Link} to={"/login"} />
+            </Tabs>
+          </AppBar>
+        </div>
+        <Switch>
+          <Route path="/authors" render={() => <Authors />} />
+          <Route path="/books" render={() => <Books />} />
+          <Route path="/login" render={() => <LoginForm />} />
+          <Route path="/recomendedBooks" user={user} render={() => <LoginForm />} />
+          <Route path="/newBook" render={() => <NewBook />} />
+          <Route path="/login" render={() => <LoginForm user={user}
+            setToken={setToken}
+            setUser={setUser} />} />
+        </Switch>
+      </Router>
+    </Container>
   )
 }
 
