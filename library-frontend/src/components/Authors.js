@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@apollo/client'
 import React, { useEffect, useState } from 'react'
 import { ALL_AUTHORS, EDIT_AUTHOR } from '../queries'
-import { Button, Card, makeStyles, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@material-ui/core'
+import { Button, Card, makeStyles, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@material-ui/core'
 
 const useStyles = makeStyles({
   root: {
@@ -21,6 +21,10 @@ const useStyles = makeStyles({
   },
   bold: {
     fontWeight: 800
+  },
+  boldHeading: {
+    fontWeight: 800,
+    padding: 8
   }
 });
 
@@ -80,7 +84,9 @@ const Authors = (props) => {
       </TableContainer>
       <Card className={classes.cardStyle} variant='outlined'>
         {props.showWhenLogedIn}
-        <h3>SET BIRTHYEAR</h3>
+        <Typography variant="button" display="block" gutterBottom className={classes.boldHeading}>
+           SET YEAR OF BIRTH
+      </Typography>
         <form onSubmit={submit}>
           <TextField
             select
