@@ -86,30 +86,29 @@ const App = () => {
       })
     }
   }
+  console.log(user)
 
   return (
     <Container>
-      <Router>
-        <div className={classes.root}>
-          <AppBar position="static">
-            <Tabs value={value} onChange={handleChange} aria-label="simple tabs example">
-              <Tab label="AUTHORS" {...a11yProps(0)} component={Link} to={"/authors"} />
-              <Tab label="BOOKS" {...a11yProps(1)} component={Link} to={"/books"} />
-              <Tab label="LOGIN" {...a11yProps(2)} component={Link} to={"/"} />
-            </Tabs>
-          </AppBar>
-        </div>
-        <Switch>
-          <Route path="/authors" render={() => <Authors />} />
-          <Route path="/books" render={() => <Books show={true} />} />
-          <Route path="/" render={() => <LoginForm />} />
-          <Route path="/recomendedBooks" user={user} render={() => <RecommendedBooks books={recommendedBooks} />} />
-          <Route path="/newBook" render={() => <NewBook />} />
-          <Route path="/logout" render={() => <LoginForm user={user}
-            setToken={setToken}
-            setUser={setUser} />} />
-        </Switch>
-      </Router>
+      <div className={classes.root}>
+        <AppBar position="static">
+          <Tabs value={value} onChange={handleChange} aria-label="simple tabs example">
+            <Tab label="AUTHORS" {...a11yProps(0)} component={Link} to={"/authors"} />
+            <Tab label="BOOKS" {...a11yProps(1)} component={Link} to={"/books"} />
+            <Tab label="LOGIN" {...a11yProps(2)} component={Link} to={"/"} />
+          </Tabs>
+        </AppBar>
+      </div>
+      <Switch>
+        <Route path="/authors" render={() => <Authors />} />
+        <Route path="/books" render={() => <Books show={true} />} />
+        <Route path="/" render={() => <LoginForm setToken={setToken} setUser={setUser} />} />
+        <Route path="/recomendedBooks" user={user} render={() => <RecommendedBooks books={recommendedBooks} />} />
+        <Route path="/newBook" render={() => <NewBook />} />
+        <Route path="/logout" render={() => <LoginForm user={user}
+          setToken={setToken}
+          setUser={setUser} />} />
+      </Switch>
     </Container>
   )
 }
