@@ -93,8 +93,9 @@ const resolvers = {
   Query: {
     bookCount: () => Book.collection.countDocuments(),
     authorCount: () => Author.collection.countDocuments(),
-    me: (root, args, { currentUser }) => {
-      return currentUser
+    me: (root, args, context) => {
+      const currUser = context.currentUser()
+      return currUser
     },
     allBooks: async (root, args) => {
       if (args.author && args.genre) {
@@ -193,7 +194,8 @@ const resolvers = {
         id: user._id,
       }
 
-      return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
+      const token = { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
+      return token
     },
   },
   Subscription: {
@@ -209,7 +211,7 @@ const context = ({ req, res }) => ({
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const decodedToken = jwt.verify(auth.substring(7), process.env.JWT_SECRET)
       const currentUser = await User.findById(decodedToken.id)
-      return { currentUser }
+      return currentUser
     }
   },
   loaders: { bookCountLoader },
