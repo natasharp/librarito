@@ -1,8 +1,7 @@
-import { useLazyQuery, useMutation } from '@apollo/client'
-import { Button, Card, makeStyles, TextField } from '@material-ui/core'
+import { useMutation } from '@apollo/client'
+import { Box, Button, Card, makeStyles, TextField } from '@material-ui/core'
 import React, { useEffect, useState } from 'react'
-import { LOGIN, CURRENT_USER } from '../queries'
-import { useHistory } from 'react-router-dom'
+import { LOGIN } from '../queries'
 
 const useStyle = makeStyles({
   root: {
@@ -20,46 +19,39 @@ const useStyle = makeStyles({
   buttonStyle: {
     marginTop: 8
   },
+  box: {
+    display: "flex",
+    marginRight: 8
+  },
+  bottomLeftBox: {
+    justifyContent: "flex-end",
+    alignItems: "flex-end"
+  },
 });
 
-const LoginForm = (props) => {
+const LoginForm = ({ setToken }) => {
   const classes = useStyle()
-  const history = useHistory()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [login, tokenResult] = useMutation(LOGIN)
-  const [getCurrentUser, userResult] = useLazyQuery(CURRENT_USER, { fetchPolicy: "no-cache" })
-
 
   useEffect(() => {
     if (tokenResult.data) {
       const token = tokenResult.data.login.value
-      props.setToken(token)
+      setToken(token)
       localStorage.setItem('library-user-token', token)
-      getCurrentUser()
     }
-  }, [tokenResult.data]) // eslint-disable-line
-
-  useEffect(() => {
-    const token = localStorage.getItem('library-user-token')
-    if (userResult.data && token) {
-      props.setUser(userResult.data.me)
-    } else {
-      console.log('token is not defined')
-    }
-  }, [userResult])  // eslint-disable-line
-
+  }, [tokenResult.data, setToken])
 
   const submit = async (event) => {
     event.preventDefault()
     login({ variables: { username, password } })
-    history.push('/authors')
   }
 
   return (
     <div>
-      <Card className={classes.cardStyle} variant='outlined'>
-        <form onSubmit={submit}>
+      <form onSubmit={submit}>
+        <Card className={classes.cardStyle} variant='outlined'>
           <TextField
             fullWidth
             name='Username'
@@ -79,9 +71,18 @@ const LoginForm = (props) => {
             className={classes.textFieldStyle}
             onChange={({ target }) => setPassword(target.value)}
           />
-          <Button className={classes.buttonStyle} variant='contained' color='primary' type='submit'>LOGIN</Button>
-        </form>
-      </Card>
+        </Card>
+        <Box
+          className={`${classes.bottomLeftBox} ${classes.box}`}>
+          <Button
+            className={classes.buttonStyle}
+            variant='contained'
+            color='primary'
+            type='submit'>
+            LOGIN
+              </Button>
+        </Box>
+      </form>
     </div>
   )
 }

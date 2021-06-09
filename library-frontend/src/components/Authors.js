@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@apollo/client'
-import React, { useEffect, useState } from 'react'
-import { ALL_AUTHORS, EDIT_AUTHOR } from '../queries'
+import { useMutation } from '@apollo/client'
+import React, { useState } from 'react'
+import { EDIT_AUTHOR } from '../queries'
 import { Button, Card, makeStyles, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from '@material-ui/core'
 
 const useStyles = makeStyles({
@@ -30,18 +30,14 @@ const useStyles = makeStyles({
 
 const Authors = (props) => {
   const classes = useStyles()
-  const [authors, setAuthors] = useState([])
+
   const [birthyear, setBirthyear] = useState('')
   const [selectedAuthor, setSelectedAuthor] = useState('')
   const [updateBirthyear] = useMutation(EDIT_AUTHOR)
-  const result = useQuery(ALL_AUTHORS)
-  const options = authors.map((a) => ({ value: a, label: a.name }))
 
-  useEffect(() => {
-    if (result.data) {
-      setAuthors(result.data.allAuthors)
-    }
-  }, [result.data])
+  const options = props.authors.map((a) => ({ value: a, label: a.name }))
+
+
 
   const submit = (event) => {
     event.preventDefault()
@@ -68,11 +64,11 @@ const Authors = (props) => {
             <TableRow >
               <TableCell className={classes.bold}>AUTHOR</TableCell>
               <TableCell className={classes.bold}>DATE OF BIRTH</TableCell>
-              <TableCell className={classes.bold}>YEAR OF BOOKS</TableCell>
+              <TableCell className={classes.bold}>NUMBER OF BOOKS</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {authors.map((row) => (
+            {props.authors.map((row) => (
               <TableRow key={row.name}>
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.born}</TableCell>
@@ -82,36 +78,36 @@ const Authors = (props) => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Card className={classes.cardStyle} variant='outlined'>
-        {props.showWhenLogedIn}
-        <Typography variant="button" display="block" gutterBottom className={classes.boldHeading}>
-           SET YEAR OF BIRTH
-      </Typography>
-        <form onSubmit={submit}>
-          <TextField
-            select
-            fullWidth
-            value={selectedAuthor}
-            onChange={handleSelectAuthor}
-            label='Author'
-            variant='outlined'>
-            {options.map((option) =>
-              <MenuItem key={option.value.id} value={option.value}>{option.label}</MenuItem>
-            )}
-          </TextField>
-          <TextField
-            fullWidth
-            name='yearOfBirth'
-            type='text'
-            value={birthyear}
-            label='Year of birth'
-            variant='outlined'
-            className={classes.textFieldStyle}
-            onChange={({ target }) => setBirthyear(target.value)}
-          />
-          <Button className={classes.buttonStyle} variant='contained' color='primary' type='submit'>Update</Button>
-        </form>
-      </Card>
+      {props.user ?
+        <Card className={classes.cardStyle} variant='outlined'>
+          <Typography variant="button" display="block" gutterBottom className={classes.boldHeading}>
+            SET YEAR OF BIRTH
+          </Typography>
+          <form onSubmit={submit}>
+            <TextField
+              select
+              fullWidth
+              value={selectedAuthor}
+              onChange={handleSelectAuthor}
+              label='Author'
+              variant='outlined'>
+              {options.map((option) =>
+                <MenuItem key={option.value.id} value={option.value}>{option.label}</MenuItem>
+              )}
+            </TextField>
+            <TextField
+              fullWidth
+              name='yearOfBirth'
+              type='text'
+              value={birthyear}
+              label='Year of birth'
+              variant='outlined'
+              className={classes.textFieldStyle}
+              onChange={({ target }) => setBirthyear(target.value)}
+            />
+            <Button className={classes.buttonStyle} variant='contained' color='primary' type='submit'>Update</Button>
+          </form>
+        </Card> : null}
     </div >
   )
 }

@@ -1,23 +1,9 @@
-import { useQuery } from '@apollo/client'
-import React, { useEffect, useState } from 'react'
-import { ALL_BOOKS } from '../queries'
+import React, { useState } from 'react'
 import Filter from './Filter'
 import CustomTable from './CustomTable'
 
-const Books = ({ show }) => {
+const Books = ({books}) => {
   const [filter, setFilter] = useState('all genres')
-  const [books, setBooks] = useState([])
-  const result = useQuery(ALL_BOOKS)
-
-  useEffect(() => {
-    if (result.data) {
-      setBooks(result.data.allBooks)
-    }
-  }, [result])
-
-  if (!show) {
-    return null
-  }
 
   const booksByGenre =
     filter === 'all genres'
