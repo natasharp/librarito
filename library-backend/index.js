@@ -124,7 +124,7 @@ const resolvers = {
     bookCount: ({ id }, args, { loaders }) => loaders.bookCountLoader.load(id)
   },
   Mutation: {
-    addBook: async (root, args, { currentUser }) => {
+    addBook: async (root, args, { currentUser, loaders }) => {
       if (!currentUser) {
         throw new AuthenticationError('not authenticated')
       }
@@ -133,6 +133,8 @@ const resolvers = {
       if (!author) {
         const newAuthor = new Author({ name: args.author })
         author = await newAuthor.save()
+      } else {
+        loaders.bookCountLoader.clear(author.id)
       }
       const book = new Book({
         title: args.title,
