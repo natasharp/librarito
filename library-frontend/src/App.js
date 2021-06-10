@@ -30,17 +30,17 @@ const App = () => {
   const classes = useStyles();
   const history = useHistory();
   const [tabValue, setTabValue] = React.useState(0);
-  
+
   const [token, setToken] = useState(localStorage.getItem('library-user-token'))
   const [getCurrentUser, userResult] = useLazyQuery(CURRENT_USER, { fetchPolicy: "no-cache" })
   const [user, setUser] = useState(null)
-  
+
   const booksResult = useQuery(ALL_BOOKS)
   const [books, setBooks] = useState([])
   const [authors, setAuthors] = useState([])
   const authorsResult = useQuery(ALL_AUTHORS)
   const [recommendedBooks, setRecommendedBooks] = useState([])
-  const [getBooks, result] = useLazyQuery(ALL_BOOKS)
+  const [getRecommendedBooks, recommendedBooksResult] = useLazyQuery(ALL_BOOKS)
   const client = useApolloClient()
 
   const handleChange = (event, newValue) => {
@@ -51,9 +51,6 @@ const App = () => {
     onSubscriptionData: ({ subscriptionData }) => {
       const book = subscriptionData.data.bookAdded
       alert(`New book added: ${book.title}, ${book.author.name}`)
-      // if (book.genres.filter(genre => genre === user.favoriteGenre)) {
-      //   setRecommendedBooks(recommendedBooks.concat(book))
-      // }
       updateCacheWith(book)
     }
   })
@@ -85,15 +82,15 @@ const App = () => {
 
   useEffect(() => {
     if (user) {
-      getBooks({ variables: { genre: user.favoriteGenre } })
+      getRecommendedBooks({ variables: { genre: user.favoriteGenre } })
     }
-  }, [user, getBooks])
+  }, [user, getRecommendedBooks])
 
   useEffect(() => {
-    if (result.data) {
-      setRecommendedBooks(result.data.allBooks)
+    if (recommendedBooksResult.data) {
+      setRecommendedBooks(recommendedBooksResult.data.allBooks)
     }
-  }, [result.data])
+  }, [recommendedBooksResult.data])
 
   const logout = () => {
     setToken(null)
@@ -143,7 +140,7 @@ const App = () => {
         <Route path="/authors" render={() => <Authors user={user} authors={authors} />} />
         <Route path="/books" render={() => <Books books={books} />} />
         <Route path="/recomendedBooks" render={() => <RecommendedBooks books={recommendedBooks} user={user} />} />
-        <Route path="/newBook" render={() => <NewBook />} />
+        <Route path="/newBook" render={() => <NewBook/>} />
         <Route path="/" render={() => <LoginForm setTabValue={setTabValue} user={user} token={token}
           setToken={setToken}
           setUser={setUser} />} />
